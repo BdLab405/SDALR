@@ -1,0 +1,69 @@
+==========================================
+gpu_id:0
+s:2
+t:2
+worker:0
+seed:2024
+epsilon:1e-05
+smooth:0.1
+num:-1
+net:resnet18
+max_epoch:1
+interval:1
+batch_size:64
+lr:0.007
+lr_f:[1, 1, 1]
+mix:0
+noise_std:0.1
+dropout:0.1
+layer:bn
+bottleneck:256
+classifier:wn
+output:weight
+username:WWY_JUN
+data_name:JNU_1d_2048_2000
+domain_names:['600', '800', '1000']
+class_num:4
+folder_root:./DATA
+choose_dict:['max_epoch', 'interval', 'batch_size', 'lr', 'lr_f', 'mix', 'noise_std', 'dropout', 'classifier']
+nowtime:2024-12-25 21:44:51
+acc_list:[np.float64(96.8), np.float64(99.64), -1, np.float64(93.36), np.float64(85.39), np.float64(90.19), np.float64(96.59), -1, -1]
+data_folder:./DATA\JNU_1d_2048_2000
+input_src_logpt:./DATA\JNU_1d_2048_2000
+dset_path:./DATA\JNU_1d_2048_2000\1000_label.txt
+output_src_excel:weight\WWY_JUN\Source
+output_src_logpt:weight\WWY_JUN\Source\log&pt\(B3)1000
+output_src_feapic:weight\WWY_JUN\Picture\2024年12月25日21时44分\(B3)1000
+name_src:(B3)1000
+names:['Before(B3)1000']
+dset_paths:['./DATA\\JNU_1d_2048_2000\\1000_label.txt']
+out_file:<_io.TextIOWrapper name='weight\\WWY_JUN\\Source\\log&pt\\(B3)1000\\log_20241225_214451.txt' mode='w' encoding='cp936'>
+class_acc_list:[np.float64(99.75), 100, 100, 100, 99]
+find_k:<tools.find_position object at 0x00000230202F4050>
+input_dim:2048
+name:(B2)800→(B3)1000
+
+任务: (B3)1000; mix批次:····0; 批次:···88/···88; 总正确率 = 99.87%
+类型1 正确率： 100.00% -> 1  100.00%, 2    0.00%, 3    0.00%, 4    0.00%
+类型2 正确率：  99.00% -> 1    0.00%, 2   99.48%, 3    0.52%, 4    0.00%
+类型3 正确率： 100.00% -> 1    0.00%, 2    0.00%, 3  100.00%, 4    0.00%
+类型4 正确率： 100.00% -> 1    0.00%, 2    0.00%, 3    0.00%, 4  100.00%
+
+测试集任务: (B3)1000; 总正确率 = 99.94%
+类型1 正确率： 100.00% -> 1  100.00%, 2    0.00%, 3    0.00%, 4    0.00%
+类型2 正确率： 100.00% -> 1    0.00%, 2   99.74%, 3    0.26%, 4    0.00%
+类型3 正确率： 100.00% -> 1    0.00%, 2    0.00%, 3  100.00%, 4    0.00%
+类型4 正确率： 100.00% -> 1    0.00%, 2    0.00%, 3    0.00%, 4  100.00%
+
+任务: (B3)1000→(B1)600, 正确率 = 53.21%
+类型1 正确率：  75.00% -> 1   74.80%, 2    0.80%, 3   20.95%, 4    3.45%
+类型2 正确率：  18.00% -> 1    4.80%, 2   17.68%, 3   77.53%, 4    0.00%
+类型3 正确率：  80.00% -> 1   20.05%, 2    0.00%, 3   79.95%, 4    0.00%
+类型4 正确率：  40.00% -> 1   59.59%, 2    0.00%, 3    0.00%, 4   40.41%
+
+任务: (B3)1000→(B2)800, 正确率 = 83.07%
+类型1 正确率：  33.00% -> 1   32.56%, 2    0.00%, 3    0.00%, 4   67.44%
+类型2 正确率： 100.00% -> 1    0.00%, 2  100.00%, 3    0.00%, 4    0.00%
+类型3 正确率： 100.00% -> 1    0.26%, 2    0.00%, 3   99.74%, 4    0.00%
+类型4 正确率： 100.00% -> 1    0.00%, 2    0.00%, 3    0.00%, 4  100.00%
+

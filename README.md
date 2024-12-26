@@ -6,7 +6,7 @@
 
 ### Framework:  
 
-<img src="SDALR.jpg" width="600"/>
+<img src="SDALR.jpg" width="800"/>
 
 ### Prerequisites:
 - python == 3.6.8

@@ -60,8 +60,6 @@
  	 python tar_adaptation_RES_JNU.py  --gpu_id 0 --max_epoch 20 --interval 4 --s 2 --t 1
    	 ```
 
-**Please refer *./object/run.sh*** for all the settings for different methods and scenarios.
-
 ### Contact
 
 - [bd_lab@163.com](mailto:bd_lab@163.com)

@@ -9,10 +9,9 @@
 <img src="SDALR.jpg" width="800"/>
 
 ### Prerequisites:
-- python == 3.6.8
-- pytorch ==1.1.0
-- torchvision == 0.3.0
-- numpy, scipy, sklearn, PIL, argparse, tqdm
+- python == 3.11.10
+- pytorch ==2.4.1
+- numpy, scipy, sklearn, PIL, argparse, tqdm, openpyxl, collections
 
 ### Dataset:
 

@@ -75,7 +75,7 @@ def prepare_dicts(args, networks=None, feature_dict=None, score_dict=None, label
         add_to_dict(score_bank, name, score_dict)
         add_to_dict(init_center, name, init_center_dict)
 
-    return feature_dict, score_dict, label_dict, init_center_dict
+    return feature_dict, label_dict, score_dict, init_center_dict
 
 
 def plot_test_target(feature_dict, label_dict, score_dict, init_center_dict, out_path=None):

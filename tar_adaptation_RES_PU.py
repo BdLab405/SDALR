@@ -4,6 +4,7 @@ import time
 import os
 import text
 import plot_t_SNE
+import CenterBasedClustering
 import os.path as osp
 import numpy as np
 import torch
@@ -79,6 +80,9 @@ def obtain_label(loader, networks, args):
     add_loader, add_result, add_fea_bank, add_score_bank, add_log = text.kk(args, loader, result, networks, fea_bank,
                                                                             score_bank)
 
+    # 计算正确率（未过滤）
+    pseudo_acc_all = np.mean(result == NP_label_bank)
+    nonpseudo_acc_all = np.mean(old_predictions == NP_label_bank)
     # 计算正确率（默认过滤）
     pseudo_acc = np.mean(result[result != -1] == NP_label_bank[result != -1])
     nonpseudo_acc = np.mean((old_predictions[result != -1] == NP_label_bank[result != -1]))
@@ -91,7 +95,8 @@ def obtain_label(loader, networks, args):
     _, now_filter_matrix = tools.print_acc(filter_matrix)
 
     # 保存在日志中
-    log_str = f'已过滤\t未用伪标签：{nonpseudo_acc * 100:.2f}% -> 使用伪标签：{pseudo_acc * 100:.2f}%\n' \
+    log_str = f'未过滤\t未用伪标签：{nonpseudo_acc_all * 100:.2f}% -> 使用伪标签：{pseudo_acc_all * 100:.2f}%\n' \
+              f'已过滤\t未用伪标签：{nonpseudo_acc * 100:.2f}% -> 使用伪标签：{pseudo_acc * 100:.2f}%\n' \
               f'排除样本：{counts[0]}|{len(fea_bank)}\t剩余：' + ', '.join(map(str, counts[1:])) + "\n"
     log_str += add_log
     log_str += now_print_matrix
@@ -422,9 +427,9 @@ if __name__ == "__main__":
     parser.add_argument("--net", type=str, default="resnet18")
 
     # 训练轮次
-    parser.add_argument("--max_epoch", type=int, default=2, help="max iterations")
+    parser.add_argument("--max_epoch", type=int, default=20, help="max iterations")
     # 计算正确率次数，你写多少，这次训练总共就会生成多少次正确率计算
-    parser.add_argument("--interval", type=int, default=1)
+    parser.add_argument("--interval", type=int, default=4)
     # 训练批次
     parser.add_argument("--batch_size", type=int, default=64, help="batch_size")
     # 学习率
@@ -459,9 +464,16 @@ if __name__ == "__main__":
 
     # 输出文件夹
     parser.add_argument("--output", type=str, default="weight")
+    # 时间参数输入
+    parser.add_argument(
+        "--nowtime",
+        type=str,
+        default=None,  # 默认 None，后面再决定用什么
+        help="Time string passed from shell script, format: YYYYmmdd_HHMMSS"
+    )
 
     # 数据集向导
-    parser.add_argument('--username', type=str, default="WWY_PU")  # 一般定死
+    parser.add_argument('--username', type=str, default="NEW_PU")  # 一般定死
     parser.add_argument('--data_name', type=str, default="PU_1d_8c_2048")
     parser.add_argument('--domain_names', type=list, default=['N15_M01_F10', 'N15_M07_F10', 'N15_M07_F04'])  # 一般定死
     # ['N15_M01_F10', 'N15_M07_F10', 'N15_M07_F04']
@@ -485,7 +497,18 @@ if __name__ == "__main__":
     torch.backends.cudnn.deterministic = True
 
     # 获取当前日期和时间
-    args.nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    if args.nowtime is None:
+        # 没传参数 → 自己生成
+        args.nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    else:
+        # 传了参数 → 转成你原来用的格式
+        try:
+            # 假设脚本传入格式是 "20250808_114532"
+            dt = datetime.strptime(args.nowtime, "%Y%m%d_%H%M%S")
+            args.nowtime = dt.strftime("%Y-%m-%d %H:%M:%S")
+        except ValueError:
+            raise ValueError(f"Invalid nowtime format: {args.nowtime}")
+
     len_names = len(args.domain_names)
 
     # 修改学习率倍率格式
@@ -510,7 +533,7 @@ if __name__ == "__main__":
             args.input_src_logpt = osp.join(
                 args.output,
                 args.username,
-                "Source",
+                "Source-源域",
                 "log&pt",
                 "(B{})".format(args.s + 1) + args.domain_names[args.s].upper()
             )
@@ -520,7 +543,7 @@ if __name__ == "__main__":
             args.output_tar_excel = osp.join(
                 args.output,
                 args.username,
-                "Target",
+                "Target-目标域",
             )
             print("excel输出位置：{}".format(args.output_tar_excel))
 
@@ -528,16 +551,11 @@ if __name__ == "__main__":
             args.output_tar_feapic = osp.join(
                 args.output,
                 args.username,
-                "Picture",
+                "Picture-特征图",
                 datetime.strptime(args.nowtime, "%Y-%m-%d %H:%M:%S").strftime("%Y年%m月%d日%H时%M分"),
                 "(B{})".format(args.s + 1) + args.domain_names[args.s].upper()
             )
             print("特征图片输出位置：{}".format(args.output_tar_feapic))
-
-            feature_dict = {}
-            label_dict = {}
-            score_dict = {}
-            init_center_dict = {}
 
             args.names = ["Before" + ("(B{})".format(args.s + 1)) + args.domain_names[args.s].upper()]
             args.dset_paths = [osp.join(args.data_folder, args.domain_names[args.s] + '_label.txt')]
@@ -545,14 +563,14 @@ if __name__ == "__main__":
             args.input_dim = len(txt_loader(make_dataset(open(args.dset_paths[0]).readlines()[:1], None)[0][0]))
             source_networks = tools.read_model(args, model_path=args.input_src_logpt)
 
-            # feature_out, label_out, score_out, init_center_out = plot_t_SNE.prepare_dicts(args, source_networks)
-            # feature_dict.update(feature_out)
-            # label_dict.update(label_out)
-            # score_dict.update(score_out)
-            # init_center_dict.update(init_center_out)
-
             for args.t in range(len_names) if target_mem == -1 else [target_mem]:
+
+                feature_dict = {}
+                label_dict = {}
+                score_dict = {}
+                init_center_dict = {}
                 if args.s == args.t: continue
+
                 networks = source_networks
                 args.class_acc_list = [-1] * (args.class_num + 1)
 
@@ -575,8 +593,8 @@ if __name__ == "__main__":
                 print("log&pt输出位置：{}".format(args.output_tar_logpt))
 
                 # 获得迁移前的特征图
-                args.names = ["Before" + args.name]
-                args.dset_paths = [args.dset_path]
+                # args.names = ["Before" + args.name]
+                # args.dset_paths = [args.dset_path]
                 # feature_out, label_out, score_out, init_center_out = plot_t_SNE.prepare_dicts(args, networks)
                 # feature_dict.update(feature_out)
                 # label_dict.update(label_out)
@@ -604,18 +622,18 @@ if __name__ == "__main__":
                 # 获得迁移之后的特征图
                 args.names = ["After" + args.name]
                 args.dset_paths = [args.dset_path]
-                # feature_out, label_out, score_out, init_center_out = plot_t_SNE.prepare_dicts(args, networks)
-                # feature_dict.update(feature_out)
-                # label_dict.update(label_out)
-                # score_dict.update(score_out)
-                # init_center_dict.update(init_center_out)
+                feature_out, label_out, score_out, init_center_out = plot_t_SNE.prepare_dicts(args, networks)
+                feature_dict.update(feature_out)
+                label_dict.update(label_out)
+                score_dict.update(score_out)
+                init_center_dict.update(init_center_out)
 
                 str_list = [f"B{args.s + 1}→B{args.t + 1}"]
                 str_list.extend(['类型{}'.format(y + 1) for y in range(args.class_num)])
                 write_to_excel(print_excel(args, str_list, args.class_acc_list),
                                args.output_tar_excel + f'/(B{args.s + 1})→(B{args.t + 1})tar_class_output.xlsx')
 
-            # plot_t_SNE.plot_test_target(feature_dict, label_dict, score_dict, init_center_dict, args.output_tar_feapic)
+                plot_t_SNE.plot_test_target(feature_dict, label_dict, score_dict, init_center_dict, args.output_tar_feapic)
 
         str_list = ['B{}→B{}'.format(x + 1, y + 1) for x in range(len_names) for y in range(len_names) if x != y]
         # 写入数据到 Excel 文件

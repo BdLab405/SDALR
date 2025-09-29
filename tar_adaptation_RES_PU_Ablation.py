@@ -22,7 +22,12 @@ from data_list import txt_loader, make_dataset
 
 
 def obtain_label(loader, networks, args):
-    process_type = ["reverse", "mask", "shift", "none"]  # "reverse", "mask", "shift",
+    if args.mix == 1:
+        process_type = ["none"]  # "reverse", "mask", "shift",
+    elif args.mix == 2:
+        process_type = ["reverse", "mask", "shift", "none"]  # "reverse", "mask", "shift",
+    else:
+        a = b
     prediction_bank = np.zeros((len(process_type), len(loader.dataset)))
     for i in range(len(process_type)):
         print(f"样本变换：{process_type[i]}")
@@ -76,25 +81,20 @@ def obtain_label(loader, networks, args):
         prediction_bank[i] = now_predictions
 
     result = tools.check_columns(prediction_bank)
-    class_range = np.arange(-1, args.class_num)
-    prediction_counts = np.bincount(
-        np.searchsorted(class_range, prediction_bank[-1], sorter=np.argsort(class_range)),
-        minlength=len(class_range),
-    )
-    result_counts = np.bincount(
-        np.searchsorted(class_range, result, sorter=np.argsort(class_range)),
-        minlength=len(class_range),
-    )
-
-    if process_type != ["none"]:
-        add_loader, add_result, add_fea_bank, add_score_bank, add_log = text.kk(args, loader, result, networks, fea_bank,
-                                                                            score_bank)
+    _, counts = np.unique(result, return_counts=True)
+    # 是否需要数据增强增添样本
+    # 否
+    if args.mix == 1:
+        add_loader, add_result, add_fea_bank, add_score_bank, add_log = loader, result, fea_bank, score_bank, ""
+    # 是
+    elif args.mix == 2:
+        add_loader, add_result, add_fea_bank, add_score_bank, add_log = text.kk(args, loader, result, networks,
+                                                                                fea_bank,
+                                                                                score_bank)
     else:
-        add_loader, add_result, add_fea_bank, add_score_bank, add_log = loader, result, fea_bank, score_bank, "\n"
+        a = b
 
-    # 计算正确率（未过滤）
-    pseudo_acc_all = np.mean(result == NP_label_bank)
-    nonpseudo_acc_all = np.mean(old_predictions == NP_label_bank)
+
     # 计算正确率（默认过滤）
     pseudo_acc = np.mean(result[result != -1] == NP_label_bank[result != -1])
     nonpseudo_acc = np.mean((old_predictions[result != -1] == NP_label_bank[result != -1]))
@@ -107,10 +107,8 @@ def obtain_label(loader, networks, args):
     _, now_filter_matrix = tools.print_acc(filter_matrix)
 
     # 保存在日志中
-    log_str = f'未过滤\t未用伪标签：{nonpseudo_acc_all * 100:.2f}% -> 使用伪标签：{pseudo_acc_all * 100:.2f}%\n' \
-              f'已过滤\t未用伪标签：{nonpseudo_acc * 100:.2f}% -> 使用伪标签：{pseudo_acc * 100:.2f}%\n' \
-              f'投票前-排除样本：{prediction_counts[0]}|{len(fea_bank)}\t通过率:{(1-(prediction_counts[0]/len(fea_bank)))*100:.2f}%\t剩余：' + ', '.join(map(str, prediction_counts[1:])) + "\n" \
-              f'投票后-排除样本：{result_counts[0]}|{len(fea_bank)}\t通过率:{(1-(result_counts[0]/len(fea_bank)))*100:.2f}%\t剩余：' + ', '.join(map(str, result_counts[1:])) + "\n"
+    log_str = f'已过滤\t未用伪标签：{nonpseudo_acc * 100:.2f}% -> 使用伪标签：{pseudo_acc * 100:.2f}%\n' \
+              f'排除样本：{counts[0]}|{len(fea_bank)}\t剩余：' + ', '.join(map(str, counts[1:])) + "\n"
     log_str += add_log
     log_str += now_print_matrix
     log_str += f'\n被排除样本 正确率：{filter_nonpseudo_acc * 100:.2f}%\n'
@@ -218,7 +216,10 @@ def train_target(args, dset_loaders, networks):
         optimizer.zero_grad()
 
         '''____________________________________mix伪标签损失____________________________________'''
+        pk = args.mix
+        args.mix = 0
         mix_loss = mix_train(args, networks, inputs_test[non_mask], labels_test[non_mask])
+        args.mix = pk
 
         '''____________________________________经过模型____________________________________'''
         features_test = inputs_test
@@ -229,8 +230,8 @@ def train_target(args, dset_loaders, networks):
         softmax_out = nn.Softmax(dim=1)(outputs_test)
 
         '''____________________________________伪标签损失计算____________________________________'''
-        # args.cls_par 表示使用伪标签的权重，如果大于零则使用伪标签
-        if args.cls_par > 0:
+        # args.cls_par 表示使用伪标签的权重，如果大于零并且存在有标签的样本
+        if args.cls_par > 0 and non_mask.any():
             # 使用交叉熵损失计算分类器损失
             classifier_loss = loss.CrossEntropyLabelSmooth(
                 num_classes=args.class_num,
@@ -240,17 +241,18 @@ def train_target(args, dset_loaders, networks):
             # 将分类器损失乘以权重 args.cls_par
             classifier_loss *= args.cls_par
 
-        else:  # 如果不使用伪标签，则将分类器损失设置为零
+        else:
             classifier_loss = torch.tensor([0.0]).cuda()
 
         '''____________________________________伪标签(包含Mix和原始)损失____________________________________'''
         combined_loss = torch.mean(
             torch.cat([loss for loss in [mix_loss, classifier_loss] if torch.mean(loss) > 0])
         )
+        classifier_loss = torch.mean(classifier_loss)
 
         '''____________________________________熵损失____________________________________'''
         # 检查非掩码样本是否存在
-        if (~non_mask).any():
+        if (~non_mask).any() and args.ent_par != -1:
             entropy_non_mask = loss.Entropy(softmax_out[~non_mask]).mean()
         else:
             entropy_non_mask = 0.0  # 如果无有效非掩码样本，设置为 0
@@ -265,7 +267,6 @@ def train_target(args, dset_loaders, networks):
 
         # 计算最终损失
         entropy_loss = entropy_mask - entropy_non_mask - softmax_log_term
-        entropy_loss *= args.ent_par
 
         '''____________________________________add损失______________________________________'''
         # 排除标签为 -1 的样本
@@ -274,51 +275,55 @@ def train_target(args, dset_loaders, networks):
         valid_labels = labels_test[valid_mask]  # 有效样本的标签
         valid_softmax = softmax_out[valid_mask]
 
-        # 正则化有效样本的特征
-        output_features = F.normalize(valid_features)
+        if non_mask.any() and args.aad_par != 0:
+            # 正则化有效样本的特征
+            output_features = F.normalize(valid_features)
 
-        # # 正则化有效样本的特征
-        # output_features = valid_softmax
+            # # 正则化有效样本的特征
+            # output_features = valid_softmax
 
-        # **1. 同标签样本损失（正样本损失）**
-        # 构建同标签样本的掩码
-        same_label_mask = (valid_labels.unsqueeze(0) == valid_labels.unsqueeze(1)).float()  # valid_batch x valid_batch
-        same_label_mask.fill_diagonal_(0)  # 去掉对角线上的自身样本
+            # ---------------------------1. 同标签样本损失（正样本损失）-------------------------
+            # 构建同标签样本的掩码
+            same_label_mask = (valid_labels.unsqueeze(0) == valid_labels.unsqueeze(1)).float()  # valid_batch x valid_batch
+            same_label_mask.fill_diagonal_(0)  # 去掉对角线上的自身样本
 
-        # 筛选同标签的样本对特征
-        same_label_features = output_features.unsqueeze(0) * same_label_mask.unsqueeze(
-            -1)  # valid_batch x valid_batch x feature_dim
-        same_label_similarities = (same_label_features @ output_features.unsqueeze(-1)).squeeze(
-            -1)  # valid_batch x valid_batch
+            # 筛选同标签的样本对特征
+            same_label_features = output_features.unsqueeze(0) * same_label_mask.unsqueeze(
+                -1)  # valid_batch x valid_batch x feature_dim
+            same_label_similarities = (same_label_features @ output_features.unsqueeze(-1)).squeeze(
+                -1)  # valid_batch x valid_batch
 
-        # 每行求和以计算同标签的相似度
-        row_sums = same_label_similarities.sum(dim=1)
+            # 每行求和以计算同标签的相似度
+            row_sums = same_label_similarities.sum(dim=1)
 
-        # 保留非零元素，并计算正样本损失（feature_loss）
-        non_zero_sums = row_sums[row_sums != 0]
-        feature_loss = -non_zero_sums.mean() if non_zero_sums.numel() > 0 else torch.tensor(0.0, device=same_label_similarities.device)
+            # 保留非零元素，并计算正样本损失（feature_loss）
+            non_zero_sums = row_sums[row_sums != 0]
+            feature_loss = -non_zero_sums.mean() if non_zero_sums.numel() > 0 else torch.tensor(0.0, device=same_label_similarities.device)
 
-        # **2. 不同标签样本损失（负样本损失）**
-        # 构建不同标签的掩码
-        neg_mask = 1 - same_label_mask
-        neg_mask.fill_diagonal_(0)  # 自身样本不作为负样本
+            # ---------------------------2. 不同标签样本损失（负样本损失）---------------------------
+            # 构建不同标签的掩码
+            neg_mask = 1 - same_label_mask
+            neg_mask.fill_diagonal_(0)  # 自身样本不作为负样本
 
-        # 筛选不同标签的样本对特征
-        neg_label_features = output_features.unsqueeze(0) * neg_mask.unsqueeze(
-            -1)  # valid_batch x valid_batch x feature_dim
-        neg_label_similarities = (neg_label_features @ output_features.unsqueeze(-1)).squeeze(
-            -1)  # valid_batch x valid_batch
+            # 筛选不同标签的样本对特征
+            neg_label_features = output_features.unsqueeze(0) * neg_mask.unsqueeze(
+                -1)  # valid_batch x valid_batch x feature_dim
+            neg_label_similarities = (neg_label_features @ output_features.unsqueeze(-1)).squeeze(
+                -1)  # valid_batch x valid_batch
 
-        # 筛选不同标签样本的相似度并按行求和
-        row_sums_neg = neg_label_similarities.sum(dim=1)  # 每行求和
+            # 筛选不同标签样本的相似度并按行求和
+            row_sums_neg = neg_label_similarities.sum(dim=1)  # 每行求和
 
-        # 保留非零元素并计算负样本损失
-        non_zero_neg_sums = row_sums_neg[row_sums_neg != 0]
-        neg_pred_loss = non_zero_neg_sums.mean() if non_zero_neg_sums.numel() > 0 else torch.tensor(0.0,
-                                                                                                    device=output_features.device)
+            # 保留非零元素并计算负样本损失
+            non_zero_neg_sums = row_sums_neg[row_sums_neg != 0]
+            neg_pred_loss = non_zero_neg_sums.mean() if non_zero_neg_sums.numel() > 0 else torch.tensor(0.0,
+                                                                                                        device=output_features.device)
 
-        # **最终 add 损失**
-        add_loss = (feature_loss + args.K * neg_pred_loss) * args.aad_par
+            # **最终 add 损失**
+            add_loss = (feature_loss + args.K * neg_pred_loss) * args.aad_par
+
+        else:
+            add_loss = 0.0
 
         # 打印情况
         if ((iter_num) % len(dset_loaders["train"])) == 0:
@@ -346,6 +351,8 @@ def train_target(args, dset_loaders, networks):
             acc_t_te, acc_matrix, _ = tools.cal_acc(dset_loaders["val"], networks)
             log_str = "任务: {}; mix批次:{:·>5d}; 批次:{:·>5d}/{:·>5d};  总正确率: {:4.2f}%". \
                           format(args.name, mix_train.mix_iter_num, iter_num, max_iter, acc_t_te) + "\n"
+            # log_str = "任务: {};  批次:{:·>5d}/{:·>5d};  总正确率: {:4.2f}%". \
+            #               format(args.name, iter_num, max_iter, acc_t_te) + "\n"
 
             correct_rate, acc_str = tools.print_acc(acc_matrix)
             log_str += acc_str
@@ -402,9 +409,9 @@ if __name__ == "__main__":
         "--gpu_id", type=str, nargs="?", default="0", help="device id to run"
     )
     # 选择源域
-    parser.add_argument("--s", type=int, default=-1, help="source")
+    parser.add_argument("--s", type=int, default=0, help="source")
     # 选择目标域
-    parser.add_argument("--t", type=int, default=-1, help="target")
+    parser.add_argument("--t", type=int, default=2, help="target")
     # 并行工作数
     parser.add_argument("--worker", type=int, default=0, help="number of workers")
     # 随机种子
@@ -414,7 +421,7 @@ if __name__ == "__main__":
     # 标签平滑参数
     parser.add_argument('--smooth', type=float, default=0.1)
     # 同类型样本数量限制(-1为无限制)
-    parser.add_argument('--num', type=int, default=-1)
+    parser.add_argument('--num', type=int, default=2000)
     # 训练策略
     parser.add_argument('--trte', type=str, default='val', choices=['full', 'val'])
     # 特征距离选择
@@ -450,15 +457,17 @@ if __name__ == "__main__":
     # 学习率倍率（仅影响特征提取）
     parser.add_argument('--lr_f', type=str, default="[0.1, 0.1, 1]")
     # 进行Mixup的概率
-    parser.add_argument('--mix', type=float, default=0)
-    # 伪标签样本阈值判断(趋于2筛选越宽容；趋于0筛选越严格)
-    parser.add_argument('--threshold', type=float, default=0.4)
+    parser.add_argument('--mix', type=float, default=1)
+    # 伪标签样本阈值判断(趋于1筛选越宽容；趋于0筛选越严格)
+    parser.add_argument('--threshold', type=float, default=2)
     # 伪标签权重
     parser.add_argument('--cls_par', type=float, default=1)
     # 熵权重
-    parser.add_argument('--ent_par', type=float, default=1)
+    parser.add_argument('--ent_par', type=float, default=-1)
+    # 全局平均熵权重
+    parser.add_argument('--gen_par', type=float, default=1)
     # AaD权重
-    parser.add_argument('--aad_par', type=float, default=1)
+    parser.add_argument('--aad_par', type=float, default=0)
     # 近邻样本数量
     parser.add_argument("--K", type=float, default=0.6)
     # 噪音干扰倍率
@@ -475,26 +484,21 @@ if __name__ == "__main__":
 
     # 输出文件夹
     parser.add_argument("--output", type=str, default="weight")
-    # 时间参数输入
-    parser.add_argument(
-        "--nowtime",
-        type=str,
-        default=None,  # 默认 None，后面再决定用什么
-        help="Time string passed from shell script, format: YYYYmmdd_HHMMSS"
-    )
 
     # 数据集向导
-    parser.add_argument('--username', type=str, default="NEW_JNU")  # 一般定死
-    parser.add_argument('--data_name', type=str, default="JNU_1d_2048_2000")
-    parser.add_argument('--domain_names', type=list, default=['600', '800', '1000'])  # 一般定死
+    parser.add_argument('--username', type=str, default="WWY_PU_RES_v2")  # 一般定死
+    parser.add_argument('--data_name', type=str, default="PU_1d_8c_2048")
+    parser.add_argument('--domain_names', type=list, default=['N15_M01_F10', 'N15_M07_F10', 'N15_M07_F04'])  # 一般定死
     # ['N15_M01_F10', 'N15_M07_F10', 'N15_M07_F04']
-    parser.add_argument('--class_num', type=int, default=4)  # 一般定死
+    # ['600', '800', '1000']
+    parser.add_argument('--class_num', type=int, default=8)  # 一般定死
     parser.add_argument('--folder_root', type=str, default="./DATA")  # 一般定死
 
     args = parser.parse_args()
 
     args.choose_dict = ["max_epoch", "interval", "batch_size", "lr", "lr_f",
-                        "mix", "threshold", "cls_par", 'ent_par', 'aad_par', "K", "noise_std", "dropout", "classifier"]
+                        "mix", "threshold", "cls_par", 'ent_par', 'gen_par', 'aad_par', "K", "noise_std", "dropout",
+                        "classifier"]
 
     # 设立随机数
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
@@ -506,18 +510,7 @@ if __name__ == "__main__":
     torch.backends.cudnn.deterministic = True
 
     # 获取当前日期和时间
-    if args.nowtime is None:
-        # 没传参数 → 自己生成
-        args.nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    else:
-        # 传了参数 → 转成你原来用的格式
-        try:
-            # 假设脚本传入格式是 "20250808_114532"
-            dt = datetime.strptime(args.nowtime, "%Y%m%d_%H%M%S")
-            args.nowtime = dt.strftime("%Y-%m-%d %H:%M:%S")
-        except ValueError:
-            raise ValueError(f"Invalid nowtime format: {args.nowtime}")
-
+    args.nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     len_names = len(args.domain_names)
 
     # 修改学习率倍率格式
@@ -577,13 +570,13 @@ if __name__ == "__main__":
             args.input_dim = len(txt_loader(make_dataset(open(args.dset_paths[0]).readlines()[:1], None)[0][0]))
             source_networks = tools.read_model(args, model_path=args.input_src_logpt)
 
+            # feature_out, label_out, score_out, init_center_out = plot_t_SNE.prepare_dicts(args, source_networks)
+            # feature_dict.update(feature_out)
+            # label_dict.update(label_out)
+            # score_dict.update(score_out)
+            # init_center_dict.update(init_center_out)
+
             for args.t in range(len_names) if target_mem == -1 else [target_mem]:
-
-                feature_dict = {}
-                label_dict = {}
-                score_dict = {}
-                init_center_dict = {}
-
                 if args.s == args.t: continue
                 networks = source_networks
                 args.class_acc_list = [-1] * (args.class_num + 1)
@@ -607,8 +600,8 @@ if __name__ == "__main__":
                 print("log&pt输出位置：{}".format(args.output_tar_logpt))
 
                 # 获得迁移前的特征图
-                # args.names = ["Before" + args.name]
-                # args.dset_paths = [args.dset_path]
+                args.names = ["Before" + args.name]
+                args.dset_paths = [args.dset_path]
                 # feature_out, label_out, score_out, init_center_out = plot_t_SNE.prepare_dicts(args, networks)
                 # feature_dict.update(feature_out)
                 # label_dict.update(label_out)
@@ -636,18 +629,18 @@ if __name__ == "__main__":
                 # 获得迁移之后的特征图
                 args.names = ["After" + args.name]
                 args.dset_paths = [args.dset_path]
-                feature_out, label_out, score_out, init_center_out = plot_t_SNE.prepare_dicts(args, networks)
-                feature_dict.update(feature_out)
-                label_dict.update(label_out)
-                score_dict.update(score_out)
-                init_center_dict.update(init_center_out)
+                # feature_out, label_out, score_out, init_center_out = plot_t_SNE.prepare_dicts(args, networks)
+                # feature_dict.update(feature_out)
+                # label_dict.update(label_out)
+                # score_dict.update(score_out)
+                # init_center_dict.update(init_center_out)
 
                 str_list = [f"B{args.s + 1}→B{args.t + 1}"]
                 str_list.extend(['类型{}'.format(y + 1) for y in range(args.class_num)])
                 write_to_excel(print_excel(args, str_list, args.class_acc_list),
                                args.output_tar_excel + f'/(B{args.s + 1})→(B{args.t + 1})tar_class_output.xlsx')
 
-                plot_t_SNE.plot_test_target(feature_dict, label_dict, score_dict, init_center_dict, args.output_tar_feapic)
+            # plot_t_SNE.plot_test_target(feature_dict, label_dict, score_dict, init_center_dict, args.output_tar_feapic)
 
         str_list = ['B{}→B{}'.format(x + 1, y + 1) for x in range(len_names) for y in range(len_names) if x != y]
         # 写入数据到 Excel 文件

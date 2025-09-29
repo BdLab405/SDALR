@@ -25,38 +25,24 @@
 	- Train model on the source domains, respectively
 	```python
 	 cd object/
-	 python src_pretrain_RES.py --gpu_id 0 --max_epoch 10 --interval 2 --username WWY_PU --data_name PU_1d_8c_2048 --domain_names ['N15_M01_F10', 'N15_M07_F10', 'N15_M07_F04'] --class_num 8 --s 0
-	 python src_pretrain_RES.py --gpu_id 0 --max_epoch 10 --interval 2 --username WWY_PU --data_name PU_1d_8c_2048 --domain_names ['N15_M01_F10', 'N15_M07_F10', 'N15_M07_F04'] --class_num 8 --s 1
-	 python src_pretrain_RES.py --gpu_id 0 --max_epoch 10 --interval 2 --username WWY_PU --data_name PU_1d_8c_2048 --domain_names ['N15_M01_F10', 'N15_M07_F10', 'N15_M07_F04'] --class_num 8 --s 2
+	 python src_pretrain_RES_PU.py
 	```
 	
 	- Adaptation to the target domain
 	```python
-	 python tar_adaptation_RES_PU.py  --gpu_id 0 --max_epoch 20 --interval 4 --s 0 --t 1
-	 python tar_adaptation_RES_PU.py  --gpu_id 0 --max_epoch 20 --interval 4 --s 0 --t 2
- 	 python tar_adaptation_RES_PU.py  --gpu_id 0 --max_epoch 20 --interval 4 --s 1 --t 0
- 	 python tar_adaptation_RES_PU.py  --gpu_id 0 --max_epoch 20 --interval 4 --s 1 --t 2
- 	 python tar_adaptation_RES_PU.py  --gpu_id 0 --max_epoch 20 --interval 4 --s 2 --t 0
- 	 python tar_adaptation_RES_PU.py  --gpu_id 0 --max_epoch 20 --interval 4 --s 2 --t 1
+	./choose_s_t_PU.sh
 	```
 	
 2. ##### Source-free Domain Adaptation (SFDA) on the dataset JNU
 	- Train model on the source domains, respectively
 	```python
 	 cd object/
-	 python src_pretrain_RES.py --gpu_id 0 --max_epoch 10 --interval 2 --username WWY_JUN --data_name JNU_1d_2048_2000 --domain_names ['600', '800', '1000'] --class_num 8 --s 0
-	 python src_pretrain_RES.py --gpu_id 0 --max_epoch 10 --interval 2 --username WWY_JUN --data_name JNU_1d_2048_2000 --domain_names ['600', '800', '1000'] --class_num 8 --s 1
-	 python src_pretrain_RES.py --gpu_id 0 --max_epoch 10 --interval 2 --username WWY_JUN --data_name JNU_1d_2048_2000 --domain_names ['600', '800', '1000'] --class_num 8 --s 2
+	 python src_pretrain_RES_JNU.py
 	```
 	
 	- Adaptation to the target domain
 	```python
-	 python tar_adaptation_RES_JNU.py  --gpu_id 0 --max_epoch 20 --interval 4 --s 0 --t 1
-	 python tar_adaptation_RES_JNU.py  --gpu_id 0 --max_epoch 20 --interval 4 --s 0 --t 2
- 	 python tar_adaptation_RES_JNU.py  --gpu_id 0 --max_epoch 20 --interval 4 --s 1 --t 0
- 	 python tar_adaptation_RES_JNU.py  --gpu_id 0 --max_epoch 20 --interval 4 --s 1 --t 2
- 	 python tar_adaptation_RES_JNU.py  --gpu_id 0 --max_epoch 20 --interval 4 --s 2 --t 0
- 	 python tar_adaptation_RES_JNU.py  --gpu_id 0 --max_epoch 20 --interval 4 --s 2 --t 1
+	 ./choose_s_t_JNU.sh
    	 ```
 
 ### Contact

@@ -6,7 +6,7 @@
 
 ### Framework:  
 
-<img src="SDALR.jpg" width="800"/>
+<img src="/fig/SDALR.jpg" width="800"/>
 
 ### Prerequisites:
 - python == 3.11.10
@@ -50,8 +50,8 @@
     <td><img src="/fig/fig6.png" width="300"></td>
   </tr>
   <tr>
-    <td><img src="fig7.png" width="300"></td>
-    <td><img src="fig8.png" width="300"></td>
+    <td><img src="/fig/fig7.png" width="300"></td>
+    <td><img src="/fig/fig8.png" width="300"></td>
   </tr>
 </table>
 

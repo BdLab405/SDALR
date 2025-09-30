@@ -29,12 +29,12 @@
 
 <table>
   <tr>
-    <td><img src="fig1.png" width="300"></td>
-    <td><img src="fig2.png" width="300"></td>
+    <td><img src="/fig/fig1.png" width="300"></td>
+    <td><img src="/fig/fig2.png" width="300"></td>
   </tr>
   <tr>
-    <td><img src="fig3.png" width="300"></td>
-    <td><img src="fig4.png" width="300"></td>
+    <td><img src="/fig/fig3.png" width="300"></td>
+    <td><img src="/fig/fig4.png" width="300"></td>
   </tr>
 </table>
 
@@ -46,8 +46,8 @@
 
 <table>
   <tr>
-    <td><img src="fig5.png" width="300"></td>
-    <td><img src="fig6.png" width="300"></td>
+    <td><img src="/fig/fig5.png" width="300"></td>
+    <td><img src="/fig/fig6.png" width="300"></td>
   </tr>
   <tr>
     <td><img src="fig7.png" width="300"></td>

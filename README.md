@@ -1,6 +1,6 @@
 # Official implementation for **SDALR**
 
-## [**Source-free domain adaptation based on label reliability for cross-domain bearing fault diagnosis**](http://www.baidu.com)
+## [**Both Reliable and Unreliable Predictions Matter: Domain Adaptation for Bearing Fault Diagnosis without Source Data**](http://www.baidu.com)
 
 
 
@@ -18,6 +18,7 @@
 -  Please manually download the datasets [PU](https://pan.baidu.com/s/1d505GjqsmHWlwFG5hb5c3Q?pwd=5m1l), [JNU](https://pan.baidu.com/s/1d505GjqsmHWlwFG5hb5c3Q?pwd=5m1l).  
 -  Put the downloaded datasets into `./DATA/` with the following structure:
 
+```
 DATA
 ├── PU_1d_8c_2048
 │ ├── data
@@ -40,7 +41,7 @@ DATA
 │ │ └── ...
 │ └── ...
 └── label.txt
-
+```
 
 - `data/` contains the raw time-series samples organized by fault categories.  
 - `label.txt` provides the mapping between samples and their corresponding class labels.  

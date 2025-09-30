@@ -20,6 +20,41 @@
 -  Concerning the dsatasets, put it into './DATA/'.
 
 
+### Experimental Results
+- **Reliability Threshold ($\partial$):**  
+  With $\beta=0.6$, we varied $\partial$ from 0.45 to 0.95.  
+  - Too high ($\partial > 0.9$): pseudo-label accuracy fluctuates, unreliable samples increase.  
+  - Moderate ($0.4 \leq \partial \leq 0.7$): stable pseudo-label accuracy and diagnostic performance.  
+  - Conclusion: $\partial$ governs the trade-off, while voting ensures robustness.  
+
+<table>
+  <tr>
+    <td><img src="fig1.png" width="300"></td>
+    <td><img src="fig2.png" width="300"></td>
+  </tr>
+  <tr>
+    <td><img src="fig3.png" width="300"></td>
+    <td><img src="fig4.png" width="300"></td>
+  </tr>
+</table>
+
+- **Sample Size Analysis:**  
+  With $\beta=0.6$, $\partial=0.6$, we varied the number of target samples.  
+  - (a) Accuracy of all pseudo-labels (%)  
+  - (b) Fault diagnosis accuracy (%)  
+  - Results confirm the scalability and robustness of the method.
+
+<table>
+  <tr>
+    <td><img src="fig5.png" width="300"></td>
+    <td><img src="fig6.png" width="300"></td>
+  </tr>
+  <tr>
+    <td><img src="fig7.png" width="300"></td>
+    <td><img src="fig8.png" width="300"></td>
+  </tr>
+</table>
+
 ### Training:
 1. ##### Source-free Domain Adaptation (SFDA) on the dataset PU
 	- Train model on the source domains, respectively

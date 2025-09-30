@@ -21,7 +21,14 @@
 
 
 ### Experimental Results
-- **Reliability Threshold ($\partial$):**  
+
+#### Diagnosis Accuracy
+We evaluate SDALR on the PU and JNU datasets under source-free settings.  
+The results show that SDALR consistently outperforms UDA and SFDA baselines.  
+
+👉 Detailed per-task results can be found in the [paper](link).
+
+#### Reliability Threshold ($\partial$):
   With $\beta=0.6$, we varied $\partial$ from 0.45 to 0.95.  
   - Too high ($\partial > 0.9$): pseudo-label accuracy fluctuates, unreliable samples increase.  
   - Moderate ($0.4 \leq \partial \leq 0.7$): stable pseudo-label accuracy and diagnostic performance.  
@@ -29,16 +36,16 @@
 
 <table>
   <tr>
-    <td><img src="/fig/fig1.png" width="300"></td>
-    <td><img src="/fig/fig2.png" width="300"></td>
+    <td><img src="/fig/fig1.png" width="400"></td>
+    <td><img src="/fig/fig2.png" width="400"></td>
   </tr>
   <tr>
-    <td><img src="/fig/fig3.png" width="300"></td>
-    <td><img src="/fig/fig4.png" width="300"></td>
+    <td><img src="/fig/fig3.png" width="400"></td>
+    <td><img src="/fig/fig4.png" width="400"></td>
   </tr>
 </table>
 
-- **Sample Size Analysis:**  
+#### Sample Size Analysis:
   With $\beta=0.6$, $\partial=0.6$, we varied the number of target samples.  
   - (a) Accuracy of all pseudo-labels (%)  
   - (b) Fault diagnosis accuracy (%)  
@@ -46,38 +53,48 @@
 
 <table>
   <tr>
-    <td><img src="/fig/fig5.png" width="300"></td>
-    <td><img src="/fig/fig6.png" width="300"></td>
+    <td><img src="/fig/fig5.png" width="400"></td>
+    <td><img src="/fig/fig6.png" width="400"></td>
   </tr>
   <tr>
-    <td><img src="/fig/fig7.png" width="300"></td>
-    <td><img src="/fig/fig8.png" width="300"></td>
+    <td><img src="/fig/fig7.png" width="400"></td>
+    <td><img src="/fig/fig8.png" width="400"></td>
   </tr>
 </table>
 
-### Training:
-1. ##### Source-free Domain Adaptation (SFDA) on the dataset PU
-	- Train model on the source domains, respectively
-	```python
-	 cd object/
-	 python src_pretrain_RES_PU.py
-	```
-	
-	- Adaptation to the target domain
-	```python
-	./choose_s_t_PU.sh
-	```
-	
-2. ##### Source-free Domain Adaptation (SFDA) on the dataset JNU
-	- Train model on the source domains, respectively
-	```python
-	 cd object/
-	 python src_pretrain_RES_JNU.py
-	```
-	
-	- Adaptation to the target domain
-	```python
-	 ./choose_s_t_JNU.sh
+### Training
+
+1. ##### Source-free Domain Adaptation (SFDA) on PU dataset
+   - Pre-train the source model:
+     ```bash
+     cd object/
+     python src_pretrain_RES_PU.py
+     ```
+   - Adaptation to the target domain:  
+     We provide a shell script for automatic adaptation.  
+     The script supports **custom arguments** (e.g., number of epochs, batch size, learning rate) that can be modified directly in the `.sh` file for flexible control.  
+     ```bash
+     ./choose_s_t_PU.sh
+     ```
+
+2. ##### Source-free Domain Adaptation (SFDA) on JNU dataset
+   - Pre-train the source model:
+     ```bash
+     cd object/
+     python src_pretrain_RES_JNU.py
+     ```
+   - Adaptation to the target domain:  
+     Similar to PU, the script allows users to **customize various parameters** inside the `.sh` file for automated adaptation.  
+     ```bash
+     ./choose_s_t_JNU.sh
+     ```
+
+3. ##### Ablation Studies
+   To reproduce the ablation experiments reported in the paper, simply run:
+   ```bash
+   ./ablation_PU.sh
+   ./ablation_JNU.sh
+
    	 ```
 
 ### Contact

@@ -15,10 +15,35 @@
 
 ### Dataset:
 
--  Please manually download the datasets [PU](https://pan.baidu.com/s/1d505GjqsmHWlwFG5hb5c3Q?pwd=5m1l), [JNU](https://pan.baidu.com/s/1d505GjqsmHWlwFG5hb5c3Q?pwd=5m1l),
-  
--  Concerning the dsatasets, put it into './DATA/'.
+-  Please manually download the datasets [PU](https://pan.baidu.com/s/1d505GjqsmHWlwFG5hb5c3Q?pwd=5m1l), [JNU](https://pan.baidu.com/s/1d505GjqsmHWlwFG5hb5c3Q?pwd=5m1l).  
+-  Put the downloaded datasets into `./DATA/` with the following structure:
 
+DATA
+├── PU_1d_8c_2048
+│ ├── data
+│ │ ├── K001
+│ │ │ ├── sample.txt
+│ │ │ └── ...
+│ │ ├── K002
+│ │ │ ├── sample.txt
+│ │ │ └── ...
+│ │ └── ...
+│ └── label.txt
+│
+└── JNU_1d_2048_2000
+├── data
+│ ├── NO
+│ │ ├── sample.txt
+│ │ └── ...
+│ ├── OR
+│ │ ├── sample.txt
+│ │ └── ...
+│ └── ...
+└── label.txt
+
+
+- `data/` contains the raw time-series samples organized by fault categories.  
+- `label.txt` provides the mapping between samples and their corresponding class labels.  
 
 ### Experimental Results
 
